@@ -7,6 +7,7 @@ from pathlib import Path
 
 DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
+APP_SAVING_DIR = Path("data") # Where to store app data, like session history, generated videos, etc.
 
 DOT_ENV_PATH = Path('env/.env')
 # Minimal .env loader (no external dependency) ---------------------------------
@@ -41,6 +42,7 @@ class AppConfig:
     model: str = DEFAULT_MODEL
     system_prompt: Optional[str] = None
     color: bool = True
+    debug: bool = False
 
     @classmethod
     def load(cls) -> "AppConfig":
@@ -53,7 +55,22 @@ class AppConfig:
         system_prompt = os.getenv("OPENAI_SYSTEM_PROMPT")  # optional
         no_color = os.getenv("NO_COLOR") or os.getenv("BUZZBOT_NO_COLOR")
         color = not bool(no_color)
-        return cls(api_key=api_key, base_url=base_url, model=model, system_prompt=system_prompt, color=color)
+        
+        # Check for debug mode
+        debug_env = os.getenv("DEBUG") or os.getenv("BUZZBOT_DEBUG")
+        debug = str(debug_env).lower() in ("1", "true", "yes", "on")
+        global DEBUG
+        DEBUG = debug
+        print(f"NB: DEBUG mode is {'enabled' if debug else 'disabled'}.")
+        
+        return cls(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            system_prompt=system_prompt,
+            color=color,
+            debug=debug
+        )
 
     def switch_model(self, new_model: str):
         self.model = new_model

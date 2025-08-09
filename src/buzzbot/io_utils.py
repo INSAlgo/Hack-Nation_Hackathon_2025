@@ -6,7 +6,7 @@ import sys
 
 Message = Dict[str, Any]
 
-SESSIONS_DIR = Path("sessions")
+SESSIONS_DIR = Path("data/sessions")
 
 
 def ensure_sessions_dir():

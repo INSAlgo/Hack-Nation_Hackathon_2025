@@ -1,7 +1,7 @@
-from buzzbot_cli.buzzcli import parse_args, repl, run_hello_test, repl_multiline
-from buzzbot_cli.config import AppConfig
-from buzzbot_cli.io_utils import save_history, load_history, print_message, colorize
-from buzzbot_cli.chat import ChatSession
+from buzzbot.buzzcli import parse_args, repl, run_hello_test, repl_multiline
+from buzzbot.config import AppConfig
+from buzzbot.io_utils import save_history, load_history, print_message, colorize
+from buzzbot.chat import ChatSession
 
 from pathlib import Path
 from agents import set_default_openai_key
