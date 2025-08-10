@@ -28,12 +28,13 @@ def main():
     if getattr(args, 'test_openai', False):
         return run_hello_test(config)
 
-    # API server mode -------------------------------------------------------
-    if getattr(args, 'api', False):
-        from buzzbot.api import app  # Flask app
-        debug = bool(getattr(args, 'api_reload', False))
-        print(f"[info] Starting BuzzBot Flask API server on {args.api_host}:{args.api_port} (debug={debug})")
-        app.run(host=args.api_host, port=args.api_port, debug=debug)
+
+    # Web server mode (Flask) is now default unless --cli is passed
+    if not getattr(args, 'cli', False):
+        from buzzbot.webserver import app  # Flask app
+        debug = bool(getattr(args, 'webserver_reload', False))
+        print(f"[info] Starting BuzzBot Web Server (Flask) on {args.webserver_host}:{args.webserver_port} (debug={debug})")
+        app.run(host=args.webserver_host, port=args.webserver_port, debug=debug)
         return 0
 
     history = []
