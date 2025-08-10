@@ -6,7 +6,7 @@ from buzzbot.chat import ChatSession
 from pathlib import Path
 from agents import set_default_openai_key
 
-
+from buzzbot.content_gen import PlotGenerator
 
 def main():
     # Parse command line arguments
@@ -34,6 +34,19 @@ def main():
         debug = bool(getattr(args, 'api_reload', False))
         print(f"[info] Starting BuzzBot Flask API server on {args.api_host}:{args.api_port} (debug={debug})")
         app.run(host=args.api_host, port=args.api_port, debug=debug)
+        return 0
+
+    if getattr(args, 'test_gen', False):
+        plot_gen = PlotGenerator()
+        plot = plot_gen.generate_plot()
+        print(plot)
+        return 0
+
+    if getattr(args, 'test_tiktok', False):
+        from buzzbot.publish.tiktok import TikTokPublisher
+        publisher = TikTokPublisher()
+        video_path = "data/video_tests/flying_mountains.mp4"
+        publisher.publish_video(video_path, "Flying mountains in the sky")
         return 0
 
     history = []

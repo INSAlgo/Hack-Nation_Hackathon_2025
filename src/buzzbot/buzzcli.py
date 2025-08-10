@@ -21,6 +21,8 @@ def parse_args(argv=None):
     p.add_argument("--api-host", type=str, default="0.0.0.0", help="Host to bind API server (default: 0.0.0.0)")
     p.add_argument("--api-port", type=int, default=8000, help="Port for API server (default: 8000)")
     p.add_argument("--api-reload", action="store_true", help="Enable autoreload for API server (dev only)")
+    p.add_argument("--test-gen", action="store_true", help="Test clip gen")
+    p.add_argument("--test-tiktok", action="store_true", help="Test")
     return p.parse_args(argv)
 
 

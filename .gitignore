@@ -9,6 +9,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Social media cookies
+env/cookies.txt
+
 # Distribution / packaging
 .Python
 env/.env
