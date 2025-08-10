@@ -3,8 +3,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useState, useRef, useEffect } from "react";
 
-import { chatWithWebserver, createWebserverSession } from "@/lib/api";
-
+import { chatWithWebserver } from "@/lib/api";
+import { getMessagesForSession, saveMessagesForSession } from "@/hooks/use-session-store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -21,23 +21,27 @@ interface Message {
 const initialAssistantMsg = "Hey! I’m your TikTok Igniter AI. Tell me your niche and vibe (funny, educational, edgy) and I’ll craft a scroll-stopping hook, 15–30s script, B-roll ideas, and caption/hashtags.";
 
 
-export default function ChatAgent() {
-  const [messages, setMessages] = useState<Message[]>([{
-    role: "assistant",
-    content: initialAssistantMsg,
-  }]);
+export default function ChatAgent({ sessionId }: { sessionId?: string }) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
 
   useEffect(() => {
-    // Create a session on mount
-    createWebserverSession().then((data) => {
-      setSessionId(data.session_id);
-    });
-  }, []);
+    if (!sessionId) return;
+    const existing = getMessagesForSession(sessionId);
+    if (existing && existing.length) {
+      setMessages(existing);
+    } else {
+      setMessages([{ role: "assistant", content: initialAssistantMsg }]);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    saveMessagesForSession(sessionId, messages);
+  }, [messages, sessionId]);
 
   const sendMessage = async () => {
     if (!input.trim() || !sessionId) return;
