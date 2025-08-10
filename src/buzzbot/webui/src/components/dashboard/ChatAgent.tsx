@@ -1,3 +1,6 @@
+
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useState, useRef, useEffect } from "react";
 
 import { chatWithWebserver, createWebserverSession } from "@/lib/api";
@@ -85,7 +88,15 @@ export default function ChatAgent() {
                       : "mr-auto max-w-[85%] rounded-md bg-muted px-3 py-2"
                   }
                 >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                  {m.role === "assistant" ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {m.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                  )}
                 </div>
               </div>
             ))}
