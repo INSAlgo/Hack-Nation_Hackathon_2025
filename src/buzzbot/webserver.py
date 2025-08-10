@@ -1,3 +1,22 @@
+# --- Social media posting endpoint ---
+@app.route("/post/start", methods=["POST"])
+def post_start():
+    """
+    Start posting a video to selected social media platforms.
+    Expects JSON: {"video_url": str, "description": str, "platforms": [str], ...}
+    """
+    data = request.get_json(force=True) or {}
+    video_url = data.get("video_url")
+    description = data.get("description")
+    platforms = data.get("platforms")
+    # Optionally: hashtags, schedule, etc.
+    if not video_url or not description or not platforms:
+        return jsonify({"error": "Missing required fields (video_url, description, platforms)"}), 400
+    # Here you would trigger the actual posting logic (async task, API call, etc.)
+    # For now, just log and return success
+    logging.info(f"Posting video {video_url} to platforms: {platforms} with description: {description}")
+    # TODO: Integrate with actual social media APIs
+    return jsonify({"ok": True, "message": "Posting started", "platforms": platforms})
 
 from __future__ import annotations
 # --- Error logging: log full stack trace to console on errors ---
