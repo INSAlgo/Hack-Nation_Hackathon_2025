@@ -15,9 +15,9 @@ def main():
     # Load configuration from environment or .env file
     try:
         config = AppConfig.load()
-        set_default_openai_key(config.api_key)
+        set_default_openai_key(config.openai_api_key)
     except RuntimeError as e:
-        print(f"[error] {e}\nSet OPENAI_API_KEY in environment or .env.")
+        print(f"[error] {e}\nSet OPENAI_API_KEY and other params in environment or .env.")
         return 1
     if args.no_color:
         config.color = False

@@ -37,7 +37,8 @@ def _load_dotenv_once():
 
 @dataclass
 class AppConfig:
-    api_key: str
+    openai_api_key: str
+    google_api_key: str
     base_url: str = DEFAULT_BASE_URL
     model: str = DEFAULT_MODEL
     system_prompt: Optional[str] = None
@@ -47,9 +48,12 @@ class AppConfig:
     @classmethod
     def load(cls) -> "AppConfig":
         _load_dotenv_once()
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not openai_api_key:
             raise RuntimeError("Missing OPENAI_API_KEY environment variable.")
+        google_api_key = os.getenv("GOOGLE_API_KEY")
+        if not google_api_key:
+            raise RuntimeError("Missing GOOGLE_API_KEY environment variable.")
         base_url = os.getenv("OPENAI_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
         model = os.getenv("OPENAI_MODEL", DEFAULT_MODEL)
         system_prompt = os.getenv("OPENAI_SYSTEM_PROMPT")  # optional
@@ -64,7 +68,8 @@ class AppConfig:
         print(f"NB: DEBUG mode is {'enabled' if debug else 'disabled'}.")
         
         return cls(
-            api_key=api_key,
+            openai_api_key=openai_api_key,
+            google_api_key=google_api_key,
             base_url=base_url,
             model=model,
             system_prompt=system_prompt,

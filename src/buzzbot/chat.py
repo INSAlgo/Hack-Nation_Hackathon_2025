@@ -42,7 +42,7 @@ class ChatSession:
         if self._client is None:
             if OpenAI is None:
                 raise RuntimeError("openai library not installed. Run: pip install openai")
-            self._client = OpenAI(api_key=self.config.api_key, base_url=self.config.base_url)
+            self._client = OpenAI(api_key=self.config.openai_api_key, base_url=self.config.base_url)
         return self._client
 
     def switch_model(self, new_model: str):
