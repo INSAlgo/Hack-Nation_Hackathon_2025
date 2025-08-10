@@ -58,11 +58,12 @@ export function saveMessagesForSession(id: string, msgs: StoredMessage[]) {
 
 export async function createNewSession(title = "New session"): Promise<SessionMeta> {
   const data = await createWebserverSession();
+  // We no longer persist sessions locally; return meta so caller can refetch from backend
   const meta: SessionMeta = { id: data.session_id, title, updatedAt: Date.now() };
-  const list = readSessions();
-  list.push(meta);
-  writeSessions(list);
-  // initialize empty messages store for this session
-  writeJSON(MSG_PREFIX + meta.id, []);
+  writeJSON(MSG_PREFIX + meta.id, []); // init message array
   return meta;
+}
+
+export function deleteSession(id: string) {
+  try { localStorage.removeItem(MSG_PREFIX + id); } catch {}
 }

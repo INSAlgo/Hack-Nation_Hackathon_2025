@@ -1,9 +1,8 @@
-
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useState, useRef, useEffect } from "react";
 
-import { chatWithWebserver } from "@/lib/api";
+import { chatWithWebserver, getSessionTitle } from "@/lib/api";
 import { getMessagesForSession, saveMessagesForSession } from "@/hooks/use-session-store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,19 +11,30 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send } from "lucide-react";
 
 
+
 interface Message {
   role: "user" | "assistant";
   content: string;
+  video_status?: "generating";
+  video_url?: string;
 }
 
 
 const initialAssistantMsg = "Hey! I’m your TikTok Igniter AI. Tell me your niche and vibe (funny, educational, edgy) and I’ll craft a scroll-stopping hook, 15–30s script, B-roll ideas, and caption/hashtags.";
 
 
-export default function ChatAgent({ sessionId }: { sessionId?: string }) {
+type ChatAgentProps = {
+  sessionId?: string;
+  onVideoStatus?: (status: "idle"|"generating") => void;
+  onVideoUrl?: (url?: string) => void;
+  onSessionTitle?: (sessionId: string, title: string) => void;
+};
+
+export default function ChatAgent({ sessionId, onVideoStatus, onVideoUrl, onSessionTitle }: ChatAgentProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sessionTitle, setSessionTitle] = useState<string | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
 
@@ -33,6 +43,18 @@ export default function ChatAgent({ sessionId }: { sessionId?: string }) {
     const existing = getMessagesForSession(sessionId);
     if (existing && existing.length) {
       setMessages(existing);
+      // Try to get a session title if there are at least 2 user messages
+      const userMsgs = existing.filter((m) => m.role === "user");
+      if (userMsgs.length >= 2) {
+        getSessionTitle(sessionId)
+          .then((res) => {
+            if (res.title) {
+              setSessionTitle(res.title);
+              onSessionTitle?.(sessionId, res.title);
+            }
+          })
+          .catch(() => {});
+      }
     } else {
       setMessages([{ role: "assistant", content: initialAssistantMsg }]);
     }
@@ -41,6 +63,18 @@ export default function ChatAgent({ sessionId }: { sessionId?: string }) {
   useEffect(() => {
     if (!sessionId) return;
     saveMessagesForSession(sessionId, messages);
+    // Try to get a session title if there are at least 2 user messages and no title yet
+    const userMsgs = messages.filter((m) => m.role === "user");
+    if (userMsgs.length >= 2 && !sessionTitle) {
+      getSessionTitle(sessionId)
+        .then((res) => {
+          if (res.title) {
+            setSessionTitle(res.title);
+            onSessionTitle?.(sessionId, res.title);
+          }
+        })
+        .catch(() => {});
+    }
   }, [messages, sessionId]);
 
   const sendMessage = async () => {
@@ -51,10 +85,26 @@ export default function ChatAgent({ sessionId }: { sessionId?: string }) {
     setLoading(true);
     try {
       const res = await chatWithWebserver({ prompt: userMsg.content, sessionId });
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: res.reply || "(No reply)" },
-      ]);
+      // Detect video generation status in response
+      if (res.video_status === "generating") {
+        onVideoStatus?.("generating");
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "Generating video preview...", video_status: "generating" },
+        ]);
+      } else if (res.video_url) {
+        onVideoStatus?.("idle");
+        onVideoUrl?.(res.video_url);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "Video is ready!", video_url: res.video_url },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: res.reply || "(No reply)" },
+        ]);
+      }
     } catch (e) {
       setMessages((prev) => [
         ...prev,
@@ -79,7 +129,9 @@ export default function ChatAgent({ sessionId }: { sessionId?: string }) {
         <h2>AI Agent</h2>
         <p>Craft viral TikTok hooks, scripts, and captions.</p>
       </div>
-
+      {sessionTitle && (
+        <div className="mb-2 text-center text-xs text-muted-foreground font-semibold">Session: {sessionTitle}</div>
+      )}
       <div className="flex-1 min-h-0">
         <ScrollArea className="h-full pr-3">
           <div className="space-y-3">
