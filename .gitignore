@@ -83,3 +83,6 @@ Desktop.ini
 *.pbmm
 *.scorer
 *.mp3
+
+node_modules/
+.vite/
