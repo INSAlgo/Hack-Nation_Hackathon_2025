@@ -101,12 +101,14 @@ class ChatSession:
         return base
 
     def _tool_dispatch(self, name: str, arguments: str) -> str:
+        # Dispatch to tool functions based on name
+        if name == "generate_veo3_video":
+            return self._dispatch_generate_veo3_video(arguments)
+
         # Dispatch simple functions
         funcs: Dict[str, Callable[[], Any]] = {
             "get_random_D6_dice_value": get_random_D6_dice_value,
-            "generate_veo3_video": lambda args= arguments: self._dispatch_generate_veo3_video(args)
         }
-
         fn = funcs.get(name)
         if not fn:
             return f"<error: unknown function {name}>"
