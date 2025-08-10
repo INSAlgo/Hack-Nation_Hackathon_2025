@@ -22,7 +22,7 @@ from flask import Flask, request, jsonify, send_from_directory, render_template,
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-from .models import db, User
+from .models import db, User, ChatSessionDB, MessageDB
 from .config import AppConfig
 from .chat import ChatSession
 from .io_utils import save_history
@@ -102,7 +102,8 @@ _locks: Dict[str, threading.Lock] = {}
 _global_lock = threading.Lock()
 
 
-def _create_session(model: Optional[str] = None, system_prompt: Optional[str] = None) -> str:
+def _create_session(model: Optional[str] = None, system_prompt: Optional[str] = None, user_id: Optional[int] = None) -> str:
+    from flask import has_request_context
     cfg = _config
     model_to_use = model or cfg.model
     new_cfg = type(cfg)(
@@ -118,6 +119,16 @@ def _create_session(model: Optional[str] = None, system_prompt: Optional[str] = 
     sid = uuid.uuid4().hex
     _sessions[sid] = session
     _locks[sid] = threading.Lock()
+    # Save to DB
+    with app.app_context():
+        if user_id is not None:
+            db_user_id = user_id
+        elif has_request_context():
+            db_user_id = flask_session.get('user_id') or 0
+        else:
+            db_user_id = 0
+        db.session.add(ChatSessionDB(user_id=db_user_id, session_id=sid))
+        db.session.commit()
     return sid
 
 
@@ -169,7 +180,17 @@ def session_new():
 @app.route("/session/<session_id>", methods=["GET"])
 def get_session(session_id: str):
     if session_id not in _sessions:
-        return jsonify({"error": "not_found"}), 404
+        # Try to restore from DB
+        csdb = ChatSessionDB.query.filter_by(session_id=session_id).first()
+        if not csdb:
+            return jsonify({"error": "not_found"}), 404
+        # Load messages
+        msgs = MessageDB.query.filter_by(session_id=session_id).order_by(MessageDB.timestamp).all()
+        history = [{"role": m.role, "content": m.content} for m in msgs]
+        # Recreate ChatSession
+        session = ChatSession(config=_config, history=history)
+        _sessions[session_id] = session
+        _locks[session_id] = threading.Lock()
     payload = _session_payload(session_id)
     payload["history"] = _sessions[session_id].history
     return jsonify(payload)
@@ -193,7 +214,16 @@ def chat():
             session.history.clear()
             if session.config.system_prompt:
                 session.history.append({"role": "system", "content": session.config.system_prompt})
+        # Save user message to DB
+        with app.app_context():
+            db.session.add(MessageDB(session_id=sid, role="user", content=prompt))
+            db.session.commit()
         reply_msg = session.complete(prompt)
+        # Save assistant message to DB
+        if reply_msg.get("content"):
+            with app.app_context():
+                db.session.add(MessageDB(session_id=sid, role="assistant", content=reply_msg["content"]))
+                db.session.commit()
         return jsonify({
             "session_id": sid,
             "reply": reply_msg.get("content", ""),
