@@ -11,7 +11,7 @@ import uuid
 from pathlib import Path as _Path
 from typing import Dict, List, Optional, Any
 
-from flask import Flask, request, jsonify, send_from_directory, session as flask_session
+from flask import Flask, request, jsonify, send_from_directory, session as flask_session, abort  # noqa: F401
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from .models import db, User, ChatSessionDB, MessageDB
@@ -27,6 +27,7 @@ BASE_DIR = _Path(__file__).resolve().parent
 WEBUI_DIR = BASE_DIR / 'webui'
 WEBUI_DIST_DIR = WEBUI_DIR / 'dist'
 WEBUI_INDEX = WEBUI_DIST_DIR / 'index.html'
+VIDEO_FILES_DIR = (BASE_DIR.parent.parent / 'data' / 'video_tests').resolve()
 
 app = Flask(
     __name__,
@@ -39,6 +40,7 @@ app.config['SECRET_KEY'] = 'replace-this-with-a-secret-key'
 db.init_app(app)
 with app.app_context():
     db.create_all()
+VIDEO_FILES_DIR.mkdir(parents=True, exist_ok=True)
 
 # =====================
 # Global Config & State
@@ -245,7 +247,7 @@ def chat():
     session = _sessions[sid]
     lock = _locks[sid]
     with lock:
-        if data.get("model") and data.get("model") != session.config.model:
+        if data.get("model") and isinstance(data.get("model"), str) and data.get("model") != session.config.model:
             session.switch_model(data.get("model"))
         if data.get("reset"):
             session.history.clear()
@@ -369,6 +371,27 @@ def post_start():
     logging.info(f"Posting video {video_url} to platforms: {platforms} with description: {description}")
     # TODO: Integrate with actual social media APIs
     return jsonify({"ok": True, "message": "Posting started", "platforms": platforms})
+
+@app.route('/videos/<path:filename>', methods=['GET'])
+def serve_video_file(filename: str):
+    """Serve a video file from the VIDEO_FILES_DIR."""
+    # Basic security: prevent path traversal
+    target = (VIDEO_FILES_DIR / filename).resolve()
+
+    security_check = True
+    if not str(target).startswith(str(VIDEO_FILES_DIR)):
+        security_check = False
+        print(f"[SECURITY] Attempted access outside VIDEO_FILES_DIR: {target}")
+    if not target.exists() or target.is_dir():
+        print(f"[SECURITY] Requested video file does not exist or is a directory: {target}")
+        security_check = False
+    
+    if getattr(_config, "debug", False):
+        print(f"[DEBUG] Requested video filename: {filename}, at {target}. Check: {security_check}")
+
+    if not security_check:
+        abort(404)
+    return send_from_directory(str(VIDEO_FILES_DIR), filename)
 
 # =====================
 # Miscellaneous Endpoints
