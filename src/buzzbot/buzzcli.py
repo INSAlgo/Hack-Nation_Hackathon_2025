@@ -22,6 +22,8 @@ def parse_args(argv=None):
     p.add_argument("--webserver-port", type=int, default=8000, help="Port for web server (default: 8000)")
     p.add_argument("--webserver-reload", action="store_true", help="Enable autoreload for web server (dev only)")
     p.add_argument("--cli", action="store_true", help="Force CLI mode (override default webserver)")
+    p.add_argument("--test-gen", action="store_true", help="Test clip gen")
+    p.add_argument("--test-tiktok", action="store_true", help="Test")
     return p.parse_args(argv)
 
 
