@@ -130,7 +130,7 @@ def run_hello_test(config: AppConfig) -> int:
     print("Running API test (model=%s)..." % config.model)
     try:
         session = ChatSession(config=config)
-        client = session.client()
+        client = session.openai_client()
         resp = client.chat.completions.create(
             model=config.model,
             messages=[{"role": "user", "content": "Say 'Hello world' exactly."}],
