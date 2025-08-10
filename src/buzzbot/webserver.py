@@ -18,8 +18,11 @@ import uuid
 import threading
 from typing import Dict, List, Optional, Any
 
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, send_from_directory, render_template, session as flask_session
+from werkzeug.security import generate_password_hash, check_password_hash
 
+
+from .models import db, User
 from .config import AppConfig
 from .chat import ChatSession
 from .io_utils import save_history
@@ -38,6 +41,47 @@ app = Flask(
     static_folder=str(WEBUI_DIST_DIR),
     static_url_path=''
 )
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///buzzbot.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'replace-this-with-a-secret-key'
+db.init_app(app)
+with app.app_context():
+    db.create_all()
+# Global config + session store -------------------------------------------------
+# ...existing code...
+
+# --- User authentication endpoints ---
+@app.route('/auth/register', methods=['POST'])
+def register():
+    data = request.get_json(force=True) or {}
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({'error': 'Missing username or password'}), 400
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username already exists'}), 400
+    user = User(username=username, password_hash=generate_password_hash(password))
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({'ok': True, 'user_id': user.id})
+
+@app.route('/auth/login', methods=['POST'])
+def login():
+    data = request.get_json(force=True) or {}
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({'error': 'Missing username or password'}), 400
+    user = User.query.filter_by(username=username).first()
+    if not user or not check_password_hash(user.password_hash, password):
+        return jsonify({'error': 'Invalid credentials'}), 401
+    flask_session['user_id'] = user.id
+    return jsonify({'ok': True, 'user_id': user.id})
+
+@app.route('/auth/logout', methods=['POST'])
+def logout():
+    flask_session.pop('user_id', None)
+    return jsonify({'ok': True})
 
 # --- Error logging: log full stack trace to console on errors ---
 import logging

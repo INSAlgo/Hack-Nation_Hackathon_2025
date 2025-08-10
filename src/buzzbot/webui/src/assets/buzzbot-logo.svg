@@ -1,0 +1,10 @@
+<svg width="160" height="160" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="BuzzBot logo">
+  <title>BuzzBot Logo</title>
+  <desc>Minimal chat bot logo with a speech bubble and antenna, styled to inherit current color.</desc>
+  <rect x="12" y="18" width="40" height="28" rx="8" stroke="currentColor" stroke-width="3"/>
+  <path d="M20 46v6l6-6" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="26" cy="32" r="3" fill="currentColor"/>
+  <circle cx="38" cy="32" r="3" fill="currentColor"/>
+  <path d="M22 38c2.5 2 5.5 3 10 3s7.5-1 10-3" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M24 12l-4-4M40 12l4-4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+</svg>
