@@ -60,7 +60,7 @@ export default function ChatAgent() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -124,7 +124,7 @@ export default function ChatAgent() {
           </Button>
         </div>
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Press Ctrl/Cmd+Enter to send</p>
+          <p className="text-xs text-muted-foreground">Press Enter to send, Shift+Enter for new line</p>
         </div>
       </div>
     </div>
