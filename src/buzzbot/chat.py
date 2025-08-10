@@ -7,6 +7,7 @@ from typing import List, Dict, Optional, Callable, Any, cast
 
 from .config import AppConfig
 from .io_utils import print_message, format_prefix
+from .veo3 import generate_veo3_video
 
 Message = Dict[str, Any]
 
@@ -14,6 +15,11 @@ try:
     from openai import OpenAI
 except ImportError:  # pragma: no cover
     OpenAI = None  # type: ignore
+
+try:
+    from google import genai
+except ImportError:  # pragma: no cover
+    genai = None  # type: ignore
 
 # ---------------------------------------------------------------------------
 # Tool (function) implementations
@@ -36,21 +42,32 @@ class ChatSession:
         self.history: List[Message] = history or []
         if config.system_prompt and not any(m.get("role") == "system" for m in self.history):
             self.history.insert(0, {"role": "system", "content": config.system_prompt})
-        self._client = None
+        self._openai_client = None  # renamed from _client
+        self._google_client = None
 
-    def client(self):
-        if self._client is None:
+    def openai_client(self):
+        if self._openai_client is None:
             if OpenAI is None:
                 raise RuntimeError("openai library not installed. Run: pip install openai")
-            self._client = OpenAI(api_key=self.config.openai_api_key, base_url=self.config.base_url)
-        return self._client
+            self._openai_client = OpenAI(api_key=self.config.openai_api_key, base_url=self.config.base_url)
+        return self._openai_client
+
+    def google_client(self):
+        if self._google_client is None:
+            if genai is None:
+                raise RuntimeError("google-genai not installed. Run: pip install google-genai")
+            api_key = getattr(self.config, 'google_api_key', None) or os.getenv('GOOGLE_API_KEY')
+            if not api_key:
+                raise RuntimeError("Missing GOOGLE_API_KEY for Veo3 tool.")
+            self._google_client = genai.Client(api_key=api_key)
+        return self._google_client
 
     def switch_model(self, new_model: str):
         self.config.switch_model(new_model)
 
     # Tool specs for OpenAI (JSON schema w/out params) -----------------------
     def _tool_specs(self):
-        return [
+        base = [
             {
                 "type": "function",
                 "function": {
@@ -58,10 +75,48 @@ class ChatSession:
                     "description": "Return a random integer between 1 and 6 inclusive (simulate rolling a D6)",
                     "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
                 },
-            }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "generate_veo3_video",
+                    "description": "Generate a short video with Google's Veo3 model. Provide a rich textual description and optional negative keywords list to avoid styles.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "description": {"type": "string", "description": "Main scene / action description"},
+                            "negative_keywords": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of style/content keywords to avoid (what not to include in the video) to further guide the model if necessary.",
+                                "default": [],
+                            },
+                        },
+                        "required": ["description"],
+                        "additionalProperties": False,
+                    },
+                },
+            },
         ]
+        return base
 
     def _tool_dispatch(self, name: str, arguments: str) -> str:
+        # Dispatch to tool functions based on name
+        if name == "generate_veo3_video":
+            import json
+            try:
+                data = json.loads(arguments or '{}')
+            except Exception:
+                data = {}
+            description = data.get('description', '')
+            negative_keywords = data.get('negative_keywords', []) or []
+            try:
+                client = self.google_client()
+            except Exception as e:
+                return f"<error: {e}>"
+            return generate_veo3_video(client, description=description, negative_keywords=negative_keywords)
+        
+        # Dispatch simple functions
         funcs: Dict[str, Callable[[], Any]] = {
             "get_random_D6_dice_value": get_random_D6_dice_value,
         }
@@ -98,7 +153,7 @@ class ChatSession:
     def complete(self, user_content: str) -> Message:
         user_msg: Message = {"role": "user", "content": user_content}
         self.history.append(user_msg)
-        client = self.client()
+        client = self.openai_client()
         tools = self._tool_specs()
 
         # Tool-call loop (non-streaming to inspect tool_calls)
