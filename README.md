@@ -1,17 +1,155 @@
-# Global AI Hackathon 2025
+<div align="center">
 
-We are participating in the name of [INSAlgo](https://insalgo.fr/), as the INSAlgo hackathon team.
+# Global AI Hackathon 2025 – BuzzBot
 
-### General Infos
- - Starts: Saturday 19th August, 10:00 EST
- - Submission ends: Sunday 20th, August, 9:00 EST (15:00 Paris)
- - Winners announcement: Sunday 20th, August, 14:00 EST (20:00 Paris)
+Unified conversational + video generation assistant (CLI & Web) built during the Global AI Hackathon (deadline Aug 10, 09:00 ET). Team: **INSAlgo**.
+
+</div>
+
+## 🚀 Short Description (150–300 words)
+BuzzBot unifies ideation, iteration, and early media generation for short‑form content creators who currently juggle separate LLM chat tabs, video tools, and manual file handling. Within the hackathon window we built a minimal, *extensible* assistant that: (1) provides a fast terminal and web chat interface to OpenAI‑compatible models; (2) supports structured tool/function calling (extending the model with deterministic Python functions); (3) integrates Google Veo 3 preview to generate short videos directly from within a conversation; (4) persists sessions in both SQLite and portable JSONL, auto‑generating semantic titles after sufficient context; and (5) exposes a thin API layer that can later orchestrate social distribution. The core `ChatSession` loop implements a robust tool‑calling phase (non‑streaming until tools are resolved, then graceful fallback) while keeping the code surface small. Extensibility requires only adding a JSON schema entry + dispatcher mapping. A React/Vite/Tailwind frontend consumes the same REST endpoints the CLI uses, demonstrating interface parity. Although we intentionally deferred advanced auth, async background workers, and full publishing, the delivered MVP proves the architecture: a single conversational nucleus augmented by composable tools bridging creative intent to media artifacts.
+
+## 📅 Key Event Milestones
+- Team/challenge lock‑in: Aug 9 (13:15 ET)  
+- Final submission deadline: Aug 10 (09:00 ET)  
+- Credits request window (Lovable / ElevenLabs): until Aug 10 (13:15 ET)  
+
+## 🧩 Challenges We Target
+Fragmented workflow & context loss between brainstorming (LLM), media generation, and draft social distribution.
+
+## 🛠 Tech Stack
+| Layer | Technologies |
+|-------|--------------|
+| Core Chat / Tools | Python, OpenAI SDK (`chat.completions` function calling), custom tool dispatcher |
+| Video Generation | Google Veo 3 preview (`google-genai`) |
+| Backend API | Flask, SQLAlchemy (SQLite), threading locks |
+| Persistence | SQLite (`buzzbot.db`), JSONL session export, filesystem video artifacts |
+| Frontend | React 18, Vite, TypeScript, Tailwind CSS, Radix UI components |
+| Dev / Ops | `uv` (venv + deps), requirements freeze, smoke tests |
+
+## 🧱 Architecture Overview
+```
+		  ┌────────────────┐
+CLI (buzzcli) ─▶│ ChatSession    │◀─ Web UI (React)
+		  │  (history,    │
+		  │  tool loop)   │
+		  └─────┬─────────┘
+			 │
+	   Function Call Dispatcher
+	 (dice, Veo3 video, future tools)
+			 │
+	   ┌───────────┴───────────┐
+	   │                       │
+   OpenAI-compatible API     Google Veo 3
+	   │                       │
+      LLM Responses        Long Op Polling
+			 │
+	     Persistence Layer (SQLite + JSONL)
+```
+
+## 📂 Repository Layout (Key Parts)
+- `src/buzzbot/chat.py` – Core chat + tool invocation loop.
+- `src/buzzbot/veo3.py` – Veo 3 video generation (polling + artifact save).
+- `src/buzzbot/webserver.py` – Flask REST API & session endpoints.
+- `src/buzzbot/buzzcli.py` – Interactive terminal client & commands.
+- `src/buzzbot/models.py` – SQLAlchemy models (User, ChatSessionDB, MessageDB).
+- `src/buzzbot/webui/` – React/Vite frontend.
+- `data/sessions/` – JSONL archived sessions.
+- `instance/buzzbot.db` – SQLite database (created at runtime).
+
+## ⚙️ Environment Variables
+Create `env/.env` or export before running:
+```
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=https://api.openai.com/v1   # optional override
+OPENAI_MODEL=gpt-4o-mini                    # optional
+OPENAI_SYSTEM_PROMPT=You are a helpful assistant.  # optional
+GOOGLE_API_KEY=...                          # required for Veo3 tool
+NO_COLOR=0                                  # set to 1 to disable ANSI
+DEBUG=0                                     # set 1 for verbose tool debug
+```
+
+## 🔧 Backend Setup & Run (Linux/macOS)
+```bash
+uv venv .venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+cp env/.env.example env/.env  # if example exists, then edit values
+python -m src.buzzbot.webserver  # starts Flask API (default 8000)
+```
+
+### Windows (PowerShell)
+```powershell
+uv venv .venv
+.\.venv\Scripts\Activate.ps1
+uv pip install -r requirements.txt
+python -m src.buzzbot.webserver
+```
+
+## 💬 CLI Usage
+```bash
+python src/main.py --help
+python src/main.py                # single prompt loop
+python src/main.py --multiline    # multiline entry
+python src/main.py --session sessions/<file>.jsonl
+```
+In-chat commands: `/exit`, `/save`, `/new`, `/model <name>`.
+
+## 🌐 Web UI
+Install Node deps inside `src/buzzbot/webui/`:
+```bash
+cd src/buzzbot/webui
+npm install
+npm run dev     # or: npm run build && npm run preview
+```
+Ensure backend (Flask) is running; the frontend will call `/chat`, `/sessions`, etc.
+
+## 🧪 Testing (Smoke)
+`tests_smoke.py` validates basic chat loop and save/load roundtrip:
+```bash
+python tests_smoke.py
+```
+
+## ➕ Extending Tools
+1. Add JSON schema entry in `ChatSession._tool_specs()`.
+2. Map name → Python callable in `_tool_dispatch`.
+3. Implement function (pure, deterministic preferred) returning a string.
+4. (Optional) Add persistence or artifact storage.
+
+## 🗃 Submission Assets Mapping
+| Requirement | Location / Plan |
+|-------------|-----------------|
+| Short Description | README (this section) |
+| Demo Video | (To add link) |
+| Tech Video | (To add link) |
+| 1‑Page Report PDF | `Report.md` (export to PDF) |
+| GitHub Repo | This repository |
+| Zipped Code | Generate via `git archive` or zip root dir |
+| Dataset | N/A (no external dataset) |
+
+## 🧱 Known Limitations / Future Work
+- No production auth / rate limiting (User model placeholder).
+- Veo3 long operations are synchronous polling (future: async task queue + WebSocket/SSE progress).
+- Social posting endpoint is a stub; integrate platform APIs + scheduling.
+- Add richer evaluation tests and parameter controls (temperature, top‑p).
+
+## 👥 Team (Placeholders – fill before submission)
+- Backend & Tooling: _Name_
+- Frontend & UX: _Name_
+- Infra / DevOps: _Name_
+- Integration & QA: _Name_
+
+## 🤝 Contributing
+External contributions outside hackathon scope: fork + PR (lightweight code review encouraged).
+
+## 📄 License
+Hackathon prototype – license to be finalized (assume internal evaluation use only until updated).
 
 ---
 
-# BuzzBot CLI
+# BuzzBot CLI (Original Quick Reference)
 
-Minimal terminal chat client for OpenAI-compatible models using `openai-agents`.
+Minimal terminal chat client for OpenAI-compatible models using `openai-agents` (retained for convenience).
 
 ## Features
 - Streamed token output (falls back gracefully if streaming unsupported)
