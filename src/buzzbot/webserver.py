@@ -1,12 +1,18 @@
+
+from __future__ import annotations
+# --- Error logging: log full stack trace to console on errors ---
+import logging
+import traceback
+from flask import got_request_exception
+
 """Flask implementation of the BuzzBot Web Server (API layer).
 
 Replaces the previous Starlette/Uvicorn server so that the CLI `--webserver` mode
 now runs a Flask app. Endpoints are the same for compatibility.
 
 Run (dev):
-  PYTHONPATH=src python3 src/main.py --webserver --webserver-port 8000 --webserver-reload
+    PYTHONPATH=src python3 src/main.py --webserver --webserver-port 8000 --webserver-reload
 """
-from __future__ import annotations
 
 import uuid
 import threading
@@ -25,12 +31,25 @@ WEBUI_DIR = BASE_DIR / 'webui'
 WEBUI_DIST_DIR = WEBUI_DIR / 'dist'
 WEBUI_INDEX = WEBUI_DIST_DIR / 'index.html'
 
+
 # Serve static files from the built frontend (assume Vite/React build output in 'dist')
 app = Flask(
     __name__,
     static_folder=str(WEBUI_DIST_DIR),
     static_url_path=''
 )
+
+# --- Error logging: log full stack trace to console on errors ---
+import logging
+import traceback
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log full traceback to console
+    logging.error("Exception on request: %s", request.path)
+    traceback.print_exc()
+    # Return JSON error
+    return jsonify({"error": str(e), "type": type(e).__name__}), getattr(e, "code", 500)
 
 # Global config + session store -------------------------------------------------
 _config = AppConfig.load()
