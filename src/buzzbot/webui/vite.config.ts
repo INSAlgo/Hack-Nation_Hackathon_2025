@@ -26,4 +26,37 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Build optimization: split large vendor chunks to stay below 500 kB each.
+  build: {
+    // Adjust (not hide) warning threshold after meaningful splitting.
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        // Fine‑grained manual chunking; ensures heavy libs are cached independently.
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-router-dom') || id.includes('react-dom') || id.includes('react/jsx-runtime')) {
+              return 'react-core';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'radix-ui';
+            }
+            if (id.includes('recharts')) {
+              return 'charts';
+            }
+            if (id.includes('react-markdown') || id.includes('remark-gfm')) {
+              return 'markdown';
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'react-query';
+            }
+            if (id.includes('lucide-react')) {
+              return 'icons';
+            }
+          }
+          return undefined; // default chunking
+        },
+      },
+    },
+  },
 }));
