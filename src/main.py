@@ -28,6 +28,14 @@ def main():
     if getattr(args, 'test_openai', False):
         return run_hello_test(config)
 
+    # API server mode -------------------------------------------------------
+    if getattr(args, 'api', False):
+        from buzzbot.api import app  # Flask app
+        debug = bool(getattr(args, 'api_reload', False))
+        print(f"[info] Starting BuzzBot Flask API server on {args.api_host}:{args.api_port} (debug={debug})")
+        app.run(host=args.api_host, port=args.api_port, debug=debug)
+        return 0
+
     history = []
     if args.session:
         p = Path(args.session)
