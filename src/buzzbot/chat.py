@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover
 # Tool (function) implementations
 # ---------------------------------------------------------------------------
 
+
 def get_random_D6_dice_value() -> int:
     """
     Just a simple function to simulate rolling a D6 die.
@@ -40,7 +41,9 @@ class ChatSession:
     def __init__(self, config: AppConfig, history: Optional[List[Message]] = None):
         self.config = config
         self.history: List[Message] = history or []
-        if config.system_prompt and not any(m.get("role") == "system" for m in self.history):
+        if config.system_prompt and not any(
+            m.get("role") == "system" for m in self.history
+        ):
             self.history.insert(0, {"role": "system", "content": config.system_prompt})
         self._openai_client = None  # renamed from _client
         self._google_client = None
@@ -48,15 +51,23 @@ class ChatSession:
     def openai_client(self):
         if self._openai_client is None:
             if OpenAI is None:
-                raise RuntimeError("openai library not installed. Run: pip install openai")
-            self._openai_client = OpenAI(api_key=self.config.openai_api_key, base_url=self.config.base_url)
+                raise RuntimeError(
+                    "openai library not installed. Run: pip install openai"
+                )
+            self._openai_client = OpenAI(
+                api_key=self.config.openai_api_key, base_url=self.config.base_url
+            )
         return self._openai_client
 
     def google_client(self):
         if self._google_client is None:
             if genai is None:
-                raise RuntimeError("google-genai not installed. Run: pip install google-genai")
-            api_key = getattr(self.config, 'google_api_key', None) or os.getenv('GOOGLE_API_KEY')
+                raise RuntimeError(
+                    "google-genai not installed. Run: pip install google-genai"
+                )
+            api_key = getattr(self.config, "google_api_key", None) or os.getenv(
+                "GOOGLE_API_KEY"
+            )
             if not api_key:
                 raise RuntimeError("Missing GOOGLE_API_KEY for Veo3 tool.")
             self._google_client = genai.Client(api_key=api_key)
@@ -73,7 +84,11 @@ class ChatSession:
                 "function": {
                     "name": "get_random_D6_dice_value",
                     "description": "Return a random integer between 1 and 6 inclusive (simulate rolling a D6)",
-                    "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": False,
+                    },
                 },
             },
             {
@@ -84,7 +99,10 @@ class ChatSession:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "description": {"type": "string", "description": "Main scene / action description"},
+                            "description": {
+                                "type": "string",
+                                "description": "Main scene / action description",
+                            },
                             "negative_keywords": {
                                 "type": "array",
                                 "items": {"type": "string"},
@@ -104,7 +122,9 @@ class ChatSession:
         # Dispatch simple functions
         funcs: Dict[str, Callable[[], Any]] = {
             "get_random_D6_dice_value": get_random_D6_dice_value,
-            "generate_veo3_video": lambda args= arguments: self._dispatch_generate_veo3_video(args)
+            "generate_veo3_video": lambda args=arguments: self._dispatch_generate_veo3_video(
+                args
+            ),
         }
 
         fn = funcs.get(name)
@@ -117,49 +137,59 @@ class ChatSession:
 
     def _dispatch_generate_veo3_video(self, arguments: str) -> str:
         import json
+
         try:
-            data = json.loads(arguments or '{}')
+            data = json.loads(arguments or "{}")
         except Exception:
             data = {}
-        description = data.get('description', '')
-        negative_keywords = data.get('negative_keywords', []) or []
+        description = data.get("description", "")
+        negative_keywords = data.get("negative_keywords", []) or []
         try:
             client = self.google_client()
         except Exception as e:
             return f"<error: {e}>"
-        return generate_veo3_video(client, description=description, negative_keywords=negative_keywords)
+        return generate_veo3_video(
+            client, description=description, negative_keywords=negative_keywords
+        )
 
     def _dispatch_generate_veo3_video(self, arguments: str) -> str:
         import json
+
         try:
-            data = json.loads(arguments or '{}')
+            data = json.loads(arguments or "{}")
         except Exception:
             data = {}
-        description = data.get('description', '')
-        negative_keywords = data.get('negative_keywords', []) or []
+        description = data.get("description", "")
+        negative_keywords = data.get("negative_keywords", []) or []
         try:
             client = self.google_client()
         except Exception as e:
             return f"<error: {e}>"
-        return generate_veo3_video(client, description=description, negative_keywords=negative_keywords)
+        return generate_veo3_video(
+            client, description=description, negative_keywords=negative_keywords
+        )
 
     def _convert_history(self) -> List[Dict[str, Any]]:
         converted: List[Dict[str, Any]] = []
         for m in self.history:
             role = m.get("role")
             if role == "tool":
-                converted.append({
-                    "role": "tool",
-                    "content": m.get("content", ""),
-                    "tool_call_id": m.get("tool_call_id"),
-                })
+                converted.append(
+                    {
+                        "role": "tool",
+                        "content": m.get("content", ""),
+                        "tool_call_id": m.get("tool_call_id"),
+                    }
+                )
             elif role == "assistant" and m.get("tool_calls"):
                 # Preserve tool_calls structure
-                converted.append({
-                    "role": "assistant",
-                    "content": m.get("content", ""),
-                    "tool_calls": m.get("tool_calls"),
-                })
+                converted.append(
+                    {
+                        "role": "assistant",
+                        "content": m.get("content", ""),
+                        "tool_calls": m.get("tool_calls"),
+                    }
+                )
             else:
                 converted.append({"role": role, "content": m.get("content", "")})
         return converted
@@ -182,7 +212,10 @@ class ChatSession:
                     tool_choice="auto",
                 )
             except Exception as e:
-                print(f"[warn] Tool-call phase failed ({e}); falling back to simple completion.", file=sys.stderr)
+                print(
+                    f"[warn] Tool-call phase failed ({e}); falling back to simple completion.",
+                    file=sys.stderr,
+                )
                 return self._fallback_completion(client)
 
             choice = resp.choices[0]
@@ -214,12 +247,14 @@ class ChatSession:
                         fn_name = getattr(fn_obj, "name", "<unknown>")
                         fn_args = getattr(fn_obj, "arguments", "{}")
                         result = self._tool_dispatch(fn_name, fn_args)  # type: ignore[arg-type]
-                        self.history.append({
-                            "role": "tool",
-                            "tool_call_id": getattr(tc, "id", None),
-                            "name": fn_name,
-                            "content": result,
-                        })
+                        self.history.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": getattr(tc, "id", None),
+                                "name": fn_name,
+                                "content": result,
+                            }
+                        )
                 # Loop again so model can use tool outputs
                 continue
             assistant_msg: Message = {"role": "assistant", "content": msg.content or ""}
@@ -244,4 +279,3 @@ class ChatSession:
             assistant_msg["content"] = f"<error: {e}>"
             self.history.append(assistant_msg)
             return assistant_msg
-
