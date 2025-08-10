@@ -84,3 +84,6 @@ Desktop.ini
 *.scorer
 *.mp3
 *.db
+
+node_modules/
+.vite/

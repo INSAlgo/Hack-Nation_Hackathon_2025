@@ -38,6 +38,9 @@ def generate_veo3_video(client, description: str, negative_keywords: List[str], 
     """
     if genai is None:
         return "<error: google-genai not installed>"
+    
+    return "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" # TODO - Template video to avoid using all of our credits
+    
     negative_prompt = ", ".join(negative_keywords) if negative_keywords else ""
     cfg = None
     if types is not None:
