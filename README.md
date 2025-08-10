@@ -29,7 +29,7 @@ source .venv/bin/activate
 uv pip install --upgrade pip
 uv pip install -r requirements.txt
 uv pip freeze > requirements.txt
-cp env/.env.example env/.env  # then edit with your key
+cp .env.example .env  # then edit with your keys (SECRET_KEY, API keys, etc.)
 python src/main.py --help
 ```
 
