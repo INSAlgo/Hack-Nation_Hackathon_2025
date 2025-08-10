@@ -103,19 +103,8 @@ class ChatSession:
     def _tool_dispatch(self, name: str, arguments: str) -> str:
         # Dispatch to tool functions based on name
         if name == "generate_veo3_video":
-            import json
-            try:
-                data = json.loads(arguments or '{}')
-            except Exception:
-                data = {}
-            description = data.get('description', '')
-            negative_keywords = data.get('negative_keywords', []) or []
-            try:
-                client = self.google_client()
-            except Exception as e:
-                return f"<error: {e}>"
-            return generate_veo3_video(client, description=description, negative_keywords=negative_keywords)
-        
+            return self._dispatch_generate_veo3_video(arguments)
+
         # Dispatch simple functions
         funcs: Dict[str, Callable[[], Any]] = {
             "get_random_D6_dice_value": get_random_D6_dice_value,
@@ -127,6 +116,20 @@ class ChatSession:
             return str(fn())
         except Exception as e:  # pragma: no cover
             return f"<error executing {name}: {e}>"
+
+    def _dispatch_generate_veo3_video(self, arguments: str) -> str:
+        import json
+        try:
+            data = json.loads(arguments or '{}')
+        except Exception:
+            data = {}
+        description = data.get('description', '')
+        negative_keywords = data.get('negative_keywords', []) or []
+        try:
+            client = self.google_client()
+        except Exception as e:
+            return f"<error: {e}>"
+        return generate_veo3_video(client, description=description, negative_keywords=negative_keywords)
 
     def _convert_history(self) -> List[Dict[str, Any]]:
         converted: List[Dict[str, Any]] = []
