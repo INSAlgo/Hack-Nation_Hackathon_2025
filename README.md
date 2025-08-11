@@ -2,6 +2,11 @@
 
 # Global AI Hackathon 2025 – BuzzBot
 
+> This repository contains the [INSAlgo](https://insalgo.fr/) team project for entry 12: Building a viral video-making app of the [Global AI Hackathon 2025 by Hack-Nation](https://hack-nation.ai/) that took place on *August 9-10, 2025*. Team was composed of [Onyr (Florian Rascoussier)](https://github.com/0nyr), [WiredMind2 (William Michaud)](https://github.com/WiredMind2), & [Pichu (Ngoc Ha Dao)](https://github.com/pichu2405).
+>
+> [Onyr's postmortem post on Linkedin](https://www.linkedin.com/posts/florian-rascoussier-onyr_hacknation2025-mitaihackathon-globalaihackathon-activity-7360421902630199296-4JPm?utm_source=share&utm_medium=member_desktop&rcm=ACoAACcIsOkB0IhxGhcova4MtLZJQQzTt0Z5e0Q)
+> [Hackathon organizers Linkedin page](https://www.linkedin.com/company/hack-nation/)
+
 Unified conversational + video generation assistant (CLI & Web) built during the Global AI Hackathon (deadline Aug 10, 09:00 ET). Team: **INSAlgo**.
 
 </div>
